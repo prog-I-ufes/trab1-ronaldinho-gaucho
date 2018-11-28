@@ -2,14 +2,12 @@
 
 all:	trab1 clean
 
-trab1: heya.o
-	gcc -o trab1 heya.o -lm
-
-heya.o: heya.c
-	gcc -c heya.c -lm
+trab1:
+	gcc *.c -lm
+  ./a.out
 
 clean:
 	rm -rf *.o
 
 rmproper: clean
-	rm -rf trab1
+	rm -rf a.out
