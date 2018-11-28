@@ -1,0 +1,15 @@
+### 	Makefile	###
+
+all:	trab1 clean
+
+trab1: heya.o
+	gcc -o trab1 heya.o -lm
+
+heya.o: heya.c
+	gcc -c heya.c -lm
+
+clean:
+	rm -rf *.o
+
+rmproper: clean
+	rm -rf trab1
