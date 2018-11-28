@@ -9,7 +9,6 @@ char* pathreader(FILE *f, char *path)
   fscanf (f, " %s", vector_path);
   path = (char*) malloc (2000 * sizeof(char));
   strcpy(path, vector_path);
-  //printf(" %s", path);
   return path;
 }
 
@@ -82,7 +81,7 @@ float find_label(int lines_trainning, float labels[lines_trainning], int columns
       vetor_N_organizado[w] = labels[w];
     }
   BubbleSort(labels, lines_trainning);
-    for(i = 0; i < k+1; i++)
+    for(i = 1; i < k+1; i++) // OLHAR O I = 1
       {
         for(j = 0; j < lines_trainning; j++)
           {
@@ -103,7 +102,6 @@ for(m = 0; m < k+1; m++)
         if (close_labels[m] == close_labels[l])
           {
             repeat++;
-            //printf(" %f\n",close_labels);
           }
 
       }
@@ -116,9 +114,83 @@ for(m = 0; m < k+1; m++)
 return test_label;
 }
 
+int n_rotulos (float **test, int lines_test, int columns)
+{
+int i = 0, j = 0, k = 0;
+  for(i = 0; i < lines_test; i++)
+    {
+      if (test[i][columns-1] > k)
+        {
+          k = test[i][columns-1];
+        }
+    }
+return k;
+}
 
 
+void diff_labels(float **test, int n_labels, int columns, int lines_test, float *rot)
+{
+  int i = 0;
+  float x = 1.0;
 
+for(i = 0; i< n_labels; i++)
+    {
+      rot[i] = x++;
+    }
+}
+void test_labels(float **test, float *old, int lines_test, int columns)
+  {
+    int i = 0;
+    for(i = 0; i < lines_test; i++)
+      {
+        old[i] = test[i][columns - 1];
+      }
+  }
+
+void matriz_confusao(int **matriz_confusa, float *new, float *old, float *label, int lines_test, int n_rotulos)
+{
+int i, j, k;
+for (k = 0; k < n_rotulos; k++)
+  {
+    for (i = 0; i < lines_test; i++)
+      {
+          if (new[i] == old[i])
+            {
+              matriz_confusa[k][k]++;
+            }
+          else
+            {
+              for(j = 0; j < n_rotulos; j++)
+                {
+                  if(new[i] == label[j])
+                    {
+                      matriz_confusa[k][j]++;
+                    }
+                }
+            }
+      }
+  }
+}
+
+float acuracia (int **matriz_confusao, int lines_test, int n_labels)
+  {
+    int i, j;
+    float sum;
+    float acuracia;
+for(i=0; i< n_labels; i++)
+{
+  for(j = 0; j< n_labels; j++)
+    {
+      if (i == j)
+      {
+        sum += matriz_confusao[i][j];
+      }
+      acuracia = sum/lines_test;
+
+      return acuracia;
+    }
+}
+}
 void main()
 {
   FILE *fr;
@@ -178,11 +250,10 @@ void main()
         }
     }while(fread(&d, sizeof(char),1,fp));
   rewind(fp);
-  //printf("%i \n ",lines);
-  //printf("%i \n ",columns);
+
   int i, j=0;
   float **data;
-data = (float**) malloc (lines * sizeof(float *));
+  data = (float**) malloc (lines * sizeof(float *));
   for (i = 0; i < lines; i++)
     {
       data[i] = (float*) malloc (columns * sizeof(float*));
@@ -193,9 +264,7 @@ for (i=0; i < lines; i++)
   for (j=0; j< columns;j++)
     {
       fscanf(fp, "%f%*c", &data[i][j]);
-      //printf("%f ", data[i][j]);
     }
-//  printf("\n");
 }
 float **data_test;
 char e;
@@ -222,9 +291,7 @@ for (z=0; z < lines; z++)
 for (y=0; y < columns; y++)
   {
     fscanf(fp_test, "%f%*c", &data_test[z][y]);
-    //printf("%f ", data_test[i][j]);
   }
-//printf("\n");
 }
 fclose(fp_test);
 fclose(fp);
@@ -249,11 +316,43 @@ do
   }while(fread(&o, sizeof(char),1, fr));
   rewind(fr);
 
-fgets(junk, sizeof(junk), fr);
-fgets(junk, sizeof(junk), fr);
-fgets(junk, sizeof(junk), fr);
-fscanf (fr, " %i%*c%*c %c", &k, &type);
+int n_labels;
+n_labels = n_rotulos(data_test, lines_test, columns);
+float *diff_rot;
 
+diff_rot = (float *) malloc (n_labels * sizeof(float *));
+diff_labels(data_test, n_labels, columns, lines_test, diff_rot);
+
+float dist[lines], label, all_labels[lines_test];
+int contador;
+int **confusa;
+confusa = (int**) malloc (n_labels * sizeof(int*));
+for(i = 0; i < n_labels; i++)
+  {
+    confusa[i] = (int*) malloc (n_labels * sizeof(int*));
+  }
+
+  for(j = 0; j < n_labels; j++)
+    {
+      for(i = 0; i < n_labels; i++)
+      {
+        confusa[i][j] = 0;
+      }
+   }
+
+float old[lines], acc;
+FILE *out;
+char *out_path;
+
+int counter;
+fgets(junk, sizeof(junk), fr);
+fgets(junk, sizeof(junk), fr);
+fgets(junk, sizeof(junk), fr);
+for(counter = 1; counter < lines_file - 2; counter++)
+{
+  out_path = (char *) malloc (200 * sizeof(char));
+  sprintf (out_path, "%spredicao_%i.txt", prediction_path, counter);
+  fscanf (fr, " %i%*c%*c %c", &k, &type);
   if (type == 'M')
     {
       fscanf(fr, ", %f", &r);
@@ -264,10 +363,6 @@ fscanf (fr, " %i%*c%*c %c", &k, &type);
       fgetc(fr);
     }
 
-
-float dist[lines], label, all_labels[lines_test];
-int contador;
-
  switch(type)
       {
         case 'E':
@@ -277,10 +372,33 @@ int contador;
               {
                 dist[j] = euclidiana(data_test[i], data[j],columns-1);
               }
-            label = find_label(lines, dist, columns, k, data);
-            all_labels[i] = label;
-          }
-          printf("deu certo");
+                label = find_label(lines, dist, columns, k, data);
+                all_labels[i] = label;
+              }
+
+          test_labels(data_test, old, lines_test, columns);
+          matriz_confusao(confusa, all_labels, old, diff_rot, lines_test, n_labels);
+          acc = acuracia(confusa, lines_test, n_labels);
+
+          out = fopen(out_path, "w");
+              fprintf(out, "%.2f \n", acc);
+              fprintf(out, "%c", '\n');
+
+              for(i = 0; i < n_labels; i++)
+                {
+                  for(j = 0; j < n_labels; j++)
+                    {
+                      fprintf(out, "%i ", confusa[i][j]);
+                    }
+                  fprintf(out, "%c", '\n');
+                }
+              fprintf(out, "%c", '\n');
+
+              for(i = 0; i < lines_test; i++)
+                {
+                  fprintf(out, "%i\n", (int) all_labels[i]);
+                }
+              fclose(out);
           break;
 
           case 'M':
@@ -293,6 +411,29 @@ int contador;
               label = find_label(lines, dist, columns, k, data);
               all_labels[i] = label;
             }
+            test_labels(data_test, old, lines_test, columns);
+            matriz_confusao(confusa, all_labels, old, diff_rot, lines_test, n_labels);
+            acc = acuracia(confusa, lines_test, n_labels);
+
+            out = fopen(out_path, "w");
+                fprintf(out, "%.2f \n", acc);
+                fprintf(out, "%c", '\n');
+
+                for(i = 0; i < n_labels; i++)
+                  {
+                    for(j = 0; j < n_labels; j++)
+                      {
+                        fprintf(out, "%i ", confusa[i][j]);
+                      }
+                    fprintf(out, "%c", '\n');
+                  }
+                fprintf(out, "%c", '\n');
+
+                for(i = 0; i < lines_test; i++)
+                  {
+                    fprintf(out, "%i\n", (int) all_labels[i]);
+                  }
+              fclose(out);
           break;
 
           case 'C':
@@ -305,11 +446,42 @@ int contador;
               label = find_label(lines, dist, columns, k, data);
               all_labels[i] = label;
             }
+            test_labels(data_test, old, lines_test, columns);
+            matriz_confusao(confusa, all_labels, old, diff_rot, lines_test, n_labels);
+            acc = acuracia(confusa, lines_test, n_labels);
+
+            out = fopen(out_path, "w");
+                fprintf(out, "%.2f \n", acc);
+                fprintf(out, "%c", '\n');
+
+                for(i = 0; i < n_labels; i++)
+                  {
+                    for(j = 0; j < n_labels; j++)
+                      {
+                        fprintf(out, "%i ", confusa[i][j]);
+                      }
+                    fprintf(out, "%c", '\n');
+                  }
+                fprintf(out, "%c", '\n');
+
+                for(i = 0; i < lines_test; i++)
+                  {
+                    fprintf(out, "%i\n", (int) all_labels[i]);
+                  }
+              fclose(out);
           break;
 
           default:
           printf("Valor inválido!\n");
       }
+  }
+}
+
+
+
+
+
+
 
 /*
         free(test_path);
@@ -328,4 +500,3 @@ int contador;
           free(data_test);
 //free(distances);
 */
-}
